@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shoo Mr. Bean!</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #d2b48c;
+      font-family: sans-serif;
+    }
+    #title {
+      text-align: center;
+      font-size: 2rem;
+      margin-top: 10px;
+    }
+    #frame {
+      margin: 20px auto;
+      width: 800px;
+      height: 800px;
+      border: 30px solid #8B4513;
+      box-sizing: border-box;
+      position: relative;
+      background: url('background.jpg') no-repeat center center;
+background-size: cover;
+      overflow: hidden;
+    }
+    .bean, .boss, .can, .ronnie {
+      position: absolute;
+      cursor: pointer;
+      transition: transform 0.1s;
+      max-width: 80px;
+    }
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.7);
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .healthbar {
+      width: 200px;
+      height: 20px;
+      background: #ccc;
+      margin: 5px 0;
+      position: relative;
+    }
+    .health {
+      height: 100%;
+      background: red;
+    }
+    #message, #flash {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2rem;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <div id="title">open all hours - revengg of the beans</div>
+  <div id="frame">
+    <div id="hud">
+      <div>Beans left: <span id="counter">20</span></div>
+      <div class="healthbar"><div id="playerHealth" class="health" style="width:100%"></div></div>
+      <div id="bossHealthBars" style="display:none">
+        Gary: <div class="healthbar"><div id="garyHealth" class="health" style="width:100%"></div></div>
+        Tony: <div class="healthbar"><div id="tonyHealth" class="health" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div id="message"></div>
+    <div id="flash"></div>
+  </div>
+  <script>
+    const beanImages = [
+  'bean1.jpg',
+  'bean2.jpg',
+  'bean3.jpg'
+];
+const garyImage = 'gary.png';
+const tonyImage = 'tony.png';
+const canImage = 'can.png';
+const ronnieImage = 'ronnie.png';
+
+
+    const frame = document.getElementById('frame');
+    const counterEl = document.getElementById('counter');
+    const playerHealthEl = document.getElementById('playerHealth');
+    const garyHealthEl = document.getElementById('garyHealth');
+    const tonyHealthEl = document.getElementById('tonyHealth');
+    const bossBars = document.getElementById('bossHealthBars');
+    const message = document.getElementById('message');
+    const flash = document.getElementById('flash');
+
+    let beansLeft = 20;
+    let playerHealth = 100;
+    let garyHealth = 100;
+    let tonyHealth = 100;
+    let beanInterval, canInterval;
+
+    function updateHealthBar(el, val) {
+      el.style.width = val + '%';
+    }
+
+    function spawnBean() {
+      const bean = document.createElement('img');
+      const isRonnie = Math.random() < 0.01;
+      bean.src = isRonnie ? ronnieImage : beanImages[Math.floor(Math.random() * beanImages.length)];
+      bean.className = isRonnie ? 'ronnie' : 'bean';
+      bean.style.top = Math.random() * 700 + 'px';
+      bean.style.left = Math.random() * 700 + 'px';
+      frame.appendChild(bean);
+
+      let timer = setTimeout(() => {
+        if (!isRonnie) {
+          playerHealth -= 10;
+          updateHealthBar(playerHealthEl, playerHealth);
+        }
+        bean.remove();
+      }, isRonnie ? 3000 : 2000);
+
+      bean.onclick = () => {
+        clearTimeout(timer);
+        bean.remove();
+        if (isRonnie) {
+          flashMessage("not my ronnie boy!");
+          playerHealth = Math.floor(playerHealth / 2);
+          updateHealthBar(playerHealthEl, playerHealth);
+        } else {
+          beansLeft--;
+          counterEl.textContent = beansLeft;
+          if (Math.random() < 0.001) flashMessage("handbags at dawn!");
+          if (beansLeft <= 0) startBossFight();
+        }
+      };
+    }
+
+    function flashMessage(text) {
+      flash.textContent = text;
+      flash.style.display = 'block';
+      setTimeout(() => flash.style.display = 'none', 2000);
+    }
+
+    function startGame() {
+      beanInterval = setInterval(() => {
+        if (beansLeft > 0) spawnBean();
+        if (playerHealth <= 0) endGame();
+      }, 800);
+    }
+
+    function startBossFight() {
+      clearInterval(beanInterval);
+      bossBars.style.display = 'block';
+
+      const gary = spawnBoss(garyImage, garyHealthEl, () => garyHealth = 0);
+      const tony = spawnBoss(tonyImage, tonyHealthEl, () => tonyHealth = 0);
+
+      canInterval = setInterval(() => {
+        const can = document.createElement('img');
+        can.src = canImage;
+        can.className = 'can';
+        can.style.top = Math.random() * 700 + 'px';
+        can.style.left = Math.random() * 700 + 'px';
+        frame.appendChild(can);
+        let timer = setTimeout(() => {
+          playerHealth -= 5;
+          updateHealthBar(playerHealthEl, playerHealth);
+          can.remove();
+          if (playerHealth <= 0) endGame();
+        }, 2000);
+        can.onclick = () => {
+          clearTimeout(timer);
+          can.remove();
+        };
+      }, 1000);
+    }
+
+    function spawnBoss(src, healthBar, onDeath) {
+      const boss = document.createElement('img');
+      boss.src = src;
+      boss.className = 'boss';
+      boss.style.top = Math.random() * 700 + 'px';
+      boss.style.left = Math.random() * 700 + 'px';
+      frame.appendChild(boss);
+      let health = 100;
+
+      boss.onclick = () => {
+        health -= 10;
+        updateHealthBar(healthBar, health);
+        if (health <= 0) {
+          boss.remove();
+          onDeath();
+          if (garyHealth <= 0 && tonyHealth <= 0) winGame();
+        }
+      };
+      return boss;
+    }
+
+    function winGame() {
+      clearInterval(canInterval);
+      message.textContent = 'Well done la - but where you gonna go from here eh?';
+      message.style.display = 'block';
+    }
+
+    function endGame() {
+      clearInterval(beanInterval);
+      clearInterval(canInterval);
+      message.textContent = 'You’ve had it now, mate!';
+      message.style.display = 'block';
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
